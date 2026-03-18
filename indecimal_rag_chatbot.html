@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INDECIMAL AI Assistant — Mini RAG</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F2EE;
+    --surface: #FFFFFF;
+    --surface2: #F9F7F4;
+    --border: rgba(60,45,30,0.12);
+    --border-strong: rgba(60,45,30,0.22);
+    --text-primary: #1A1208;
+    --text-secondary: #5C4F3A;
+    --text-muted: #9C8E7A;
+    --accent: #B85C2A;
+    --accent-light: #F5EBE4;
+    --accent-dark: #7A3A16;
+    --teal: #1D6A58;
+    --teal-light: #E1F0EB;
+    --gold: #8A6A1E;
+    --gold-light: #F5EED8;
+    --chunk-bg: #F0EDE8;
+    --chunk-border: #C8BEB0;
+    --shadow-sm: 0 1px 3px rgba(30,20,10,0.08);
+    --shadow-md: 0 4px 16px rgba(30,20,10,0.10);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .logo-text span {
+    color: var(--accent);
+  }
+
+  .header-badge {
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--teal-light);
+    color: var(--teal);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    flex: 1;
+    display: flex;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 16px;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .sidebar-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  .sidebar-card h3 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .doc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .doc-item:last-child { border-bottom: none; }
+
+  .doc-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  .doc-label { color: var(--text-secondary); line-height: 1.4; }
+
+  .sample-q {
+    display: block;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    width: 100%;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+
+  .sample-q:last-child { margin-bottom: 0; }
+  .sample-q:hover {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent-dark);
+  }
+
+  .rag-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .rag-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .step-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* CHAT AREA */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .chat-window {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 520px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    scroll-behavior: smooth;
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+  }
+
+  .empty-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--accent-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 24px;
+  }
+
+  .empty-state h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 320px;
+  }
+
+  /* MESSAGES */
+  .message { display: flex; flex-direction: column; gap: 4px; }
+
+  .msg-user {
+    align-self: flex-end;
+    max-width: 75%;
+    background: var(--accent);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 14px 14px 4px 14px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .msg-assistant { align-self: flex-start; width: 100%; }
+
+  .assistant-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .assistant-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    display: inline-block;
+  }
+
+  /* RETRIEVED CHUNKS */
+  .chunks-section {
+    margin-bottom: 12px;
+  }
+
+  .chunks-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gold);
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    background: var(--gold-light);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(138,106,30,0.2);
+    width: fit-content;
+  }
+
+  .chunks-toggle:hover { background: #EDE5C8; }
+
+  .chunks-toggle .arrow { transition: transform 0.2s; }
+  .chunks-toggle.open .arrow { transform: rotate(90deg); }
+
+  .chunks-list {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .chunks-list.visible { display: flex; }
+
+  .chunk-card {
+    background: var(--chunk-bg);
+    border: 1px solid var(--chunk-border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  .chunk-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .chunk-section {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: white;
+    border: 1px solid var(--chunk-border);
+    color: var(--text-muted);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  .chunk-score {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+
+  .chunk-text { color: var(--text-secondary); white-space: pre-wrap; }
+
+  /* ANSWER CARD */
+  .answer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--teal);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+  }
+
+  /* INPUT AREA */
+  .input-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  .input-wrap { flex: 1; }
+
+  textarea {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface2);
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text-muted); }
+
+  .send-btn {
+    height: 44px;
+    padding: 0 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .send-btn:hover { background: var(--accent-dark); }
+  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .send-icon { font-size: 14px; }
+
+  /* LOADING */
+  .loading-dots {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    width: fit-content;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40% { transform: scale(1.2); opacity: 1; }
+  }
+
+  /* TOP-K CONTROL */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  .ctrl-label { font-weight: 500; }
+
+  select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 3px 7px;
+    background: var(--surface);
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+  }
+
+  .model-pill {
+    margin-left: auto;
+    background: var(--teal-light);
+    color: var(--teal);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+
+  /* SCROLLBAR */
+  .chat-window::-webkit-scrollbar { width: 5px; }
+  .chat-window::-webkit-scrollbar-track { background: transparent; }
+  .chat-window::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; }
+  }
+
+  /* API KEY BANNER */
+  .api-banner {
+    background: var(--gold-light);
+    border-bottom: 1px solid rgba(138,106,30,0.2);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--gold);
+  }
+
+  .api-banner label { font-weight: 500; white-space: nowrap; }
+
+  .api-banner input {
+    flex: 1;
+    max-width: 380px;
+    border: 1px solid rgba(138,106,30,0.35);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    background: white;
+    color: var(--text-primary);
+    outline: none;
+    letter-spacing: 0.5px;
+  }
+
+  .api-banner input:focus { border-color: var(--gold); }
+
+  .api-save-btn {
+    padding: 6px 14px;
+    background: var(--gold);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .api-save-btn:hover { background: #6A5016; }
+
+  .api-status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .api-status.set { background: var(--teal-light); color: var(--teal); }
+  .api-status.unset { background: #FEF2F2; color: #991B1B; }
+
+  .api-hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .api-hint a { color: var(--gold); text-decoration: none; }
+  .api-hint a:hover { text-decoration: underline; }
+
+  /* ERROR */
+  .error-card {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #991B1B;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">In</div>
+    <span class="logo-text">INDECIMAL <span>AI</span></span>
+  </div>
+  <div class="header-badge">Mini RAG • Powered by Claude</div>
+</header>
+
+<div class="api-banner" id="apiBanner">
+  <label for="apiKeyInput">🔑 Anthropic API Key:</label>
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" onkeydown="if(event.key==='Enter') saveKey()" />
+  <button class="api-save-btn" onclick="saveKey()">Save</button>
+  <span class="api-status unset" id="apiStatus">Not set</span>
+  <span class="api-hint">Get your key at <a href="https://console.anthropic.com/keys" target="_blank">console.anthropic.com</a> · stored only in your browser</span>
+</div>
+
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-card">
+      <h3>Knowledge Base</h3>
+      <div class="doc-item"><div class="doc-dot"></div><div class="doc-label">Package pricing & specifications</div></div>
+      <div class="doc-item"><div class="doc-dot"></div><div class="doc-label">Kitchen & bathroom allowances</div></div>
+      <div class="doc-item"><div class="doc-dot"></div><div class="doc-label">Doors, windows & painting</div></div>
+      <div class="doc-item"><div class="doc-dot"></div><div class="doc-label">Flooring options</div></div>
+      <div class="doc-item"><div class="doc-dot"></div><div class="doc-label">Quality & payment policies</div></div>
+      <div class="doc-item"><div class="doc-dot"></div><div class="doc-label">Company overview & journey</div></div>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>Try These Questions</h3>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">What is the price of the Premier package?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">Which steel brand is used in Pinnacle?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">What are the flooring options for Infinia living room?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">How does Indecimal ensure quality?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">What is the main door wallet for Essential?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">How are contractor payments handled?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">What sanitary fittings does Infinia include?</button>
+      <button class="sample-q" onclick="setQuestion(this.textContent)">Tell me about Indecimal's customer journey</button>
+    </div>
+
+    <div class="sidebar-card">
+      <h3>How RAG Works</h3>
+      <div class="rag-steps">
+        <div class="rag-step"><div class="step-num">1</div><span>Your query is embedded into a vector</span></div>
+        <div class="rag-step"><div class="step-num">2</div><span>FAISS finds top-k similar document chunks</span></div>
+        <div class="rag-step"><div class="step-num">3</div><span>Retrieved context is sent to Claude</span></div>
+        <div class="rag-step"><div class="step-num">4</div><span>Answer is grounded strictly in context</span></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="chat-window" id="chatWindow">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🏠</div>
+        <h2>Ask about INDECIMAL</h2>
+        <p>I answer only from the internal knowledge base — no hallucinations. Try a sample question or type your own.</p>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea id="queryInput" placeholder="Ask about packages, pricing, specifications, quality, or the customer journey..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <div class="controls">
+          <span class="ctrl-label">Retrieved chunks (k):</span>
+          <select id="topK">
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+          <div class="model-pill">claude-sonnet-4</div>
+        </div>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="sendQuery()">
+        <span class="send-icon">→</span> Ask
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DOCUMENTS = {
+  packages: `INDECIMAL Package Pricing (per sqft, incl. GST):
+- Essential: ₹1,851/sqft
+- Premier (Most Popular): ₹1,995/sqft
+- Infinia: ₹2,250/sqft
+- Pinnacle: ₹2,450/sqft
+
+Steel (Fe 550/Fe 550D):
+- Essential: Sunvik/Kamadhenu up to ₹68,000/MT
+- Premier: JSW/Jindal Neo up to ₹74,000/MT
+- Infinia: JSW/Jindal Panther up to ₹75,000/MT
+- Pinnacle: TATA or equivalent up to ₹80,000/MT
+
+Cement (43 grade surface & 53 grade core):
+- Essential: Dalmia/Bharthi up to ₹370/bag
+- Premier: Dalmia/Bharthi up to ₹370/bag
+- Infinia: Birla Super/Ramco up to ₹390/bag
+- Pinnacle: ACC/Ultratech/Ramco up to ₹400/bag
+
+Block Work: Solid concrete blocks 6" external & 4" internal.
+6" blocks: up to ₹40 (+/-₹3) per block; 4" blocks: up to ₹33 (+/-₹3) per block.
+RCC Mix: M20 or M25 (as advised by structural engineer).
+Ceiling Height: Floor-to-floor 10 ft across all packages.`,
+
+  kitchen_bathroom: `Kitchen Ceramic Wall Dado:
+- Essential: up to ₹40/sqft | Premier: up to ₹60/sqft
+- Infinia: up to ₹80/sqft  | Pinnacle: up to ₹90/sqft
+
+Kitchen Sink (Futura or equivalent):
+- Essential: up to ₹4,000 (single bowl)
+- Premier: up to ₹7,000 (single bowl)
+- Infinia: up to ₹9,000 (single bowl with drain board)
+- Pinnacle: up to ₹10,000 (single bowl with drain board)
+
+Kitchen Sink Faucet:
+- Essential/Premier: Parryware/Hindware up to ₹2,000/₹2,500
+- Infinia/Pinnacle: Jaquar/Essco up to ₹3,500/₹4,000
+
+Bathroom Ceramic Wall Dado: Same as Kitchen across packages.
+
+Bathroom Sanitary & CP Fittings (per 1000 sqft):
+- Essential: up to ₹32,000 (Cera/Hindware)
+- Premier: up to ₹50,000 (Parryware)
+- Infinia: up to ₹70,000 (Jaquar/Essco)
+- Pinnacle: up to ₹80,000 (Kohler)
+
+CPVC Pipe: APL Apollo/Ashirwad across all; Infinia/Pinnacle also include Supreme/Astral.`,
+
+  doors_windows_painting: `Main Door (includes fittings & labour):
+- Essential: Panelled door up to ₹20,000
+- Premier: Teak door up to ₹30,000
+- Infinia: Teak door up to ₹40,000
+- Pinnacle: Teak door up to ₹50,000
+
+Windows (3-track with mosquito mesh, wallet per sqft):
+- Essential: Aluminium/UPVC up to ₹440/sqft
+- Premier: UPVC up to ₹500/sqft (Lesso eiti or equivalent)
+- Infinia: UPVC up to ₹600/sqft
+- Pinnacle: UPVC up to ₹700/sqft
+
+Interior Painting (2-coat JK Putty + 1-coat Primer + 2-coat Emulsion):
+- Essential: Asian Paints Tractor Emulsion
+- Premier: Asian Paints Tractor Emulsion Advanced
+- Infinia: Asian Paints Tractor Emulsion Shyne
+- Pinnacle: Asian Paints Royale Emulsion
+
+Exterior Painting (1-coat Primer + 2-coat Exterior Emulsion):
+- Essential: Asian Paints Ace Emulsion
+- Premier: Asian Paints Ace Shyne Emulsion
+- Infinia: Asian Paints Apex Emulsion
+- Pinnacle: Asian Paints Apex Ultima Emulsion`,
+
+  flooring: `Living & Dining Flooring (wallet per sqft):
+- Essential: tiles up to ₹50/sqft
+- Premier: tiles/granite up to ₹100/sqft
+- Infinia: tiles/granite/marble up to ₹140/sqft
+- Pinnacle: tiles/granite/marble up to ₹170/sqft
+
+Rooms & Kitchen Flooring (wallet per sqft):
+- Essential: tiles up to ₹50/sqft
+- Premier: tiles/granite up to ₹80/sqft
+- Infinia: tiles up to ₹110/sqft
+- Pinnacle: tiles up to ₹140/sqft
+
+Note: Laying charges vary and are separate from material wallet amounts.
+Wallet amounts are spending caps; upgrades can be customized at additional cost.`,
+
+  quality_payments: `Payment Safety & Stage Controls:
+- Customer payments go to an escrow account.
+- Project manager verifies stage completion before funds are released to the construction partner.
+- Purpose: reduce financial risk and improve transparency.
+
+Quality Assurance System — 445+ Critical Checkpoints:
+- Covers the entire construction lifecycle.
+- Each phase scored and audited for: structural integrity, safety compliance, execution accuracy.
+- Metrics accessible via customer dashboard.
+
+Delay Management — Zero-Tolerance Policy:
+- Integrated project management system with daily tracking.
+- Instant flagging of deviations and automated task assignment.
+- Penalisation mechanism to reinforce on-time delivery.
+
+Post-Construction Maintenance (Zero Cost Program):
+Coverage includes: Plumbing, electrical, wardrobe, masonry, modular kitchen,
+CP fittings, crack filling, tile support, roofing, painting, external windows & doors.`,
+
+  company_journey: `Indecimal — End-to-end home construction with transparent pricing, quality assurance, and structured tracking.
+
+Core Commitments:
+1. Smooth Construction Experience — step-by-step support throughout.
+2. Best & Competitive Pricing — fair pricing with no hidden charges.
+3. Quality Assurance — 445+ checks at every stage.
+4. Stage-Based Contractor Payments — released only after verified completion.
+5. Transparent & Live Tracking — real-time online project monitoring.
+
+Key Differentiators: Long-term warranty & post-delivery support, 100% transparent pricing, fixed timelines with delay penalties, branded materials and on-site quality checks, real-time tracking dashboard.
+
+Customer Journey (10 stages):
+1. Raise a request — share plot details & vision.
+2. Meet our experts — architects & construction specialists.
+3. Get home financing — documentation to disbursal guidance.
+4. Design your custom home — collaborative architectural design.
+5. Receive plans — detailed design + cost plans, transparent pricing.
+6. Book with us — milestone-based payments with clear timelines.
+7. Real-time construction progress — live photo updates via app/dashboard.
+8. Interior — concept-to-completion interiors customization.
+9. Move in — handover with maintenance & structural warranty.
+10. Maintenance — post-handover long-term care support.
+
+Financing Support: Dedicated relationship manager, minimal documentation,
+confirmation ~7 days, disbursal ~30 days (eligibility dependent).`
+};
+
+// ─── Simple cosine-similarity RAG in JS ──────────────────────────────────────
+
+function tokenize(text) {
+  return text.toLowerCase().replace(/[^\w\s₹]/g, ' ').split(/\s+/).filter(Boolean);
+}
+
+function tfidfVector(tokens, vocab) {
+  const vec = new Float32Array(vocab.size);
+  const counts = {};
+  tokens.forEach(t => counts[t] = (counts[t] || 0) + 1);
+  let i = 0;
+  vocab.forEach(term => {
+    vec[i] = counts[term] || 0;
+    i++;
+  });
+  return vec;
+}
+
+function cosineSim(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) { dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0;
+}
+
+// Build chunks
+function buildChunks(docs, chunkWords = 120, overlapWords = 25) {
+  const chunks = [];
+  for (const [section, text] of Object.entries(docs)) {
+    const words = text.split(/\s+/);
+    let start = 0;
+    while (start < words.length) {
+      const end = Math.min(start + chunkWords, words.length);
+      chunks.push({ section, text: words.slice(start, end).join(' ') });
+      if (end === words.length) break;
+      start += chunkWords - overlapWords;
+    }
+  }
+  return chunks;
+}
+
+// Build vocab & index
+const CHUNKS = buildChunks(DOCUMENTS);
+const vocab = new Set();
+CHUNKS.forEach(c => tokenize(c.text).forEach(t => vocab.add(t)));
+
+const chunkVecs = CHUNKS.map(c => tfidfVector(tokenize(c.text), vocab));
+
+function retrieve(query, topK) {
+  const qVec = tfidfVector(tokenize(query), vocab);
+  const scored = CHUNKS.map((c, i) => ({ ...c, score: cosineSim(qVec, chunkVecs[i]) }));
+  return scored.sort((a, b) => b.score - a.score).slice(0, topK);
+}
+
+// ─── LLM Call ────────────────────────────────────────────────────────────────
+
+async function callClaude(query, chunks) {
+  const apiKey = sessionStorage.getItem('indecimal_api_key');
+  if (!apiKey) throw new Error('Please enter your Anthropic API key in the banner above first.');
+
+  const context = chunks.map(c => `[Section: ${c.section}]\n${c.text}`).join('\n\n---\n\n');
+  const systemPrompt = `You are the INDECIMAL AI Assistant — a helpful, precise assistant for an Indian home construction marketplace.
+
+STRICT RULES:
+1. Answer ONLY using the provided context below. Do NOT use external knowledge.
+2. If the context does not contain enough information, say so clearly.
+3. Quote specific numbers, brand names, and allowances from the context when relevant.
+4. Keep answers concise, structured, and easy to read.
+5. Do NOT speculate or invent any figures or policies.`;
+
+  const userPrompt = `CONTEXT (retrieved from internal documents):\n${context}\n\nUSER QUESTION: ${query}\n\nAnswer strictly based on the context above:`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json();
+    throw new Error(err.error?.message || 'API error');
+  }
+  const data = await resp.json();
+  return data.content[0].text;
+}
+
+// ─── UI Logic ─────────────────────────────────────────────────────────────────
+
+function setQuestion(text) {
+  document.getElementById('queryInput').value = text;
+  document.getElementById('queryInput').focus();
+  autoResize(document.getElementById('queryInput'));
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuery(); }
+}
+
+function scrollToBottom() {
+  const w = document.getElementById('chatWindow');
+  w.scrollTop = w.scrollHeight;
+}
+
+function addUserMessage(text) {
+  const empty = document.getElementById('emptyState');
+  if (empty) empty.remove();
+
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.innerHTML = `<div class="msg-user">${escHtml(text)}</div>`;
+  document.getElementById('chatWindow').appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function addLoadingMessage() {
+  const div = document.createElement('div');
+  div.className = 'message msg-assistant';
+  div.innerHTML = `<div class="assistant-label">INDECIMAL AI</div>
+    <div class="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  document.getElementById('chatWindow').appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function renderAssistantMessage(chunks, answer, loadingDiv) {
+  const chunksHtml = chunks.map((c, i) => `
+    <div class="chunk-card">
+      <div class="chunk-meta">
+        <span class="chunk-section">${escHtml(c.section.replace(/_/g,' '))}</span>
+        <span class="chunk-score">similarity: ${c.score.toFixed(3)}</span>
+      </div>
+      <div class="chunk-text">${escHtml(c.text)}</div>
+    </div>`).join('');
+
+  loadingDiv.innerHTML = `
+    <div class="assistant-label">INDECIMAL AI</div>
+    <div class="chunks-section">
+      <div class="chunks-toggle" onclick="toggleChunks(this)">
+        <span class="arrow">▶</span>
+        Retrieved context (${chunks.length} chunks)
+      </div>
+      <div class="chunks-list">${chunksHtml}</div>
+    </div>
+    <div class="answer-card">${escHtml(answer)}</div>`;
+  scrollToBottom();
+}
+
+function renderError(msg, loadingDiv) {
+  loadingDiv.innerHTML = `
+    <div class="assistant-label">INDECIMAL AI</div>
+    <div class="error-card">Error: ${escHtml(msg)}</div>`;
+}
+
+function toggleChunks(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('visible');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function saveKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) return;
+  sessionStorage.setItem('indecimal_api_key', val);
+  document.getElementById('apiKeyInput').value = '•'.repeat(Math.min(val.length, 24));
+  document.getElementById('apiStatus').textContent = 'Key saved ✓';
+  document.getElementById('apiStatus').className = 'api-status set';
+}
+
+function loadKey() {
+  const existing = sessionStorage.getItem('indecimal_api_key');
+  if (existing) {
+    document.getElementById('apiKeyInput').value = '•'.repeat(Math.min(existing.length, 24));
+    document.getElementById('apiStatus').textContent = 'Key saved ✓';
+    document.getElementById('apiStatus').className = 'api-status set';
+  }
+}
+
+loadKey();
+
+async function sendQuery() {
+  const input = document.getElementById('queryInput');
+  const query = input.value.trim();
+  if (!query) return;
+
+  const topK = parseInt(document.getElementById('topK').value);
+  const btn = document.getElementById('sendBtn');
+
+  input.value = '';
+  autoResize(input);
+  btn.disabled = true;
+
+  addUserMessage(query);
+  const loadingDiv = addLoadingMessage();
+
+  try {
+    const chunks = retrieve(query, topK);
+    const answer = await callClaude(query, chunks);
+    renderAssistantMessage(chunks, answer, loadingDiv);
+  } catch (err) {
+    renderError(err.message, loadingDiv);
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+</script>
+</body>
+</html>
