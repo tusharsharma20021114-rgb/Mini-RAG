@@ -1,4 +1,4 @@
-# INDECIMAL Mini RAG — AI Assistant
+# Mini RAG — AI Assistant
 
 > A fully grounded Retrieval-Augmented Generation (RAG) pipeline for the INDECIMAL home construction marketplace, with a deployed chatbot interface.
 
